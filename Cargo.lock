@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "dov-channel"
+version = "0.1.0"
+dependencies = [
+ "dov-codec",
+]
+
+[[package]]
 name = "dov-codec"
 version = "0.1.0"
 

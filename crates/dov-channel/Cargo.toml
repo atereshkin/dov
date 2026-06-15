@@ -1,0 +1,9 @@
+[package]
+name = "dov-channel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Composable real-network impairments (VAD/DTX, AGC, frame loss, clock drift) around a vocoder"
+
+[dependencies]
+dov-codec = { workspace = true }

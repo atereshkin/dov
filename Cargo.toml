@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/dov-codec", "crates/dov-modem"]
+members = ["crates/dov-codec", "crates/dov-modem", "crates/dov-channel"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,7 @@ repository = "https://github.com/atereshkin/dov"
 [workspace.dependencies]
 dov-codec = { path = "crates/dov-codec" }
 dov-modem = { path = "crates/dov-modem" }
+dov-channel = { path = "crates/dov-channel" }
 
 [profile.release]
 opt-level = 3
