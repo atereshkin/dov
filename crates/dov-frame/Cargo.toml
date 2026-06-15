@@ -1,0 +1,8 @@
+[package]
+name = "dov-frame"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Framing + forward error correction (Reed-Solomon errors-and-erasures + interleaving) for the DoV link"
+
+[dependencies]

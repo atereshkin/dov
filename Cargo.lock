@@ -14,5 +14,9 @@ name = "dov-codec"
 version = "0.1.0"
 
 [[package]]
+name = "dov-frame"
+version = "0.1.0"
+
+[[package]]
 name = "dov-modem"
 version = "0.1.0"
