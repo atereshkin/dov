@@ -1,0 +1,9 @@
+[package]
+name = "dov-codec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FFI wrappers around GSM/AMR voice codecs for data-over-voice channel emulation"
+
+[lib]
+# build.rs links the system codec libraries (libgsm, libopencore-amrnb).
