@@ -18,5 +18,15 @@ name = "dov-frame"
 version = "0.1.0"
 
 [[package]]
+name = "dov-harness"
+version = "0.1.0"
+dependencies = [
+ "dov-channel",
+ "dov-codec",
+ "dov-frame",
+ "dov-modem",
+]
+
+[[package]]
 name = "dov-modem"
 version = "0.1.0"

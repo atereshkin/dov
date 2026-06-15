@@ -5,6 +5,7 @@ members = [
     "crates/dov-modem",
     "crates/dov-channel",
     "crates/dov-frame",
+    "crates/dov-harness",
 ]
 
 [workspace.package]
