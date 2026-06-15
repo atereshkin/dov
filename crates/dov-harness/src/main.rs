@@ -14,6 +14,7 @@ mod probe;
 mod run;
 mod scenarios;
 mod stress;
+mod timing;
 mod wav;
 
 fn main() {
@@ -23,8 +24,9 @@ fn main() {
         "run" => run::run(),
         "stress" => stress::run(),
         "coded" => coded::run(),
+        "sync" => timing::run(),
         other => {
-            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, or `coded`");
+            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, or `sync`");
             std::process::exit(2);
         }
     };

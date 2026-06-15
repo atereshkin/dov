@@ -19,8 +19,10 @@
 
 pub mod goertzel;
 pub mod mfsk;
+pub mod sync;
 
 pub use mfsk::{Decision, Demodulator, MfskConfig, Modulator};
+pub use sync::{Receiver, TimingRecovery};
 
 /// Narrowband sample rate shared with the vocoders, in Hz.
 pub const SAMPLE_RATE: f64 = 8_000.0;

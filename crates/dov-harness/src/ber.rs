@@ -53,6 +53,12 @@ impl CodecKind {
     }
 }
 
+/// A fixed, known preamble of `len` symbols for receiver acquisition.
+pub fn preamble(bits_per_symbol: usize, len: usize) -> Vec<u8> {
+    let mut p = Prbs::new(0x0ACE_5EED);
+    bits_to_symbols(&p.bits(len * bits_per_symbol), bits_per_symbol)
+}
+
 /// Build the transmit symbol stream (guard + PRBS payload) and its PCM.
 pub fn build_tx(modulator: &Modulator) -> (Vec<u8>, Vec<i16>) {
     let cfg = modulator.config();
