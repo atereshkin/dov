@@ -11,6 +11,7 @@ mod bridge;
 mod coded;
 mod prbs;
 mod probe;
+mod rate;
 mod run;
 mod scenarios;
 mod stress;
@@ -25,8 +26,9 @@ fn main() {
         "stress" => stress::run(),
         "coded" => coded::run(),
         "sync" => timing::run(),
+        "rate" => rate::run(),
         other => {
-            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, or `sync`");
+            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, `sync`, or `rate`");
             std::process::exit(2);
         }
     };

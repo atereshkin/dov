@@ -27,7 +27,8 @@ pub fn run() -> std::io::Result<()> {
     let artifacts = Path::new("artifacts");
     std::fs::create_dir_all(artifacts)?;
 
-    let cfg = MfskConfig::fsk8();
+    // Use the codec-agnostic higher-rate alphabet (200 bps raw) for the real link.
+    let cfg = MfskConfig::fsk16();
     let bps = cfg.bits_per_symbol();
     let modulator = Modulator::new(cfg.clone());
     let demod = Demodulator::new(cfg.clone());

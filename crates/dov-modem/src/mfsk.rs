@@ -41,6 +41,20 @@ impl MfskConfig {
         }
     }
 
+    /// Codec-agnostic higher-rate alphabet: 16 tones, 600–2400 Hz, 120 Hz
+    /// spacing, still frame-aligned (20 ms) so it survives every codec's
+    /// per-frame model. 4 bits/symbol → 200 bps raw, a +33% on [`Self::fsk8`]
+    /// at the same robustness (per the `rate` frontier sweep).
+    pub fn fsk16() -> Self {
+        Self {
+            tones: (0..16).map(|i| 600.0 + 120.0 * i as f64).collect(),
+            symbol_len: FRAME_LEN,
+            amplitude: 8000.0,
+            edge_ramp: 40,
+            decision_guard: 0.1,
+        }
+    }
+
     /// Bits carried per symbol = log2(alphabet size).
     pub fn bits_per_symbol(&self) -> usize {
         debug_assert!(self.tones.len().is_power_of_two());
