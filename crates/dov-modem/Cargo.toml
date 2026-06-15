@@ -1,0 +1,8 @@
+[package]
+name = "dov-modem"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Software modem (modulate/demodulate) designed to survive GSM/AMR voice vocoders"
+
+[dependencies]
