@@ -17,6 +17,7 @@ mod run;
 mod scenarios;
 mod stress;
 mod timing;
+mod validate;
 mod wav;
 
 fn main() {
@@ -29,8 +30,9 @@ fn main() {
         "sync" => timing::run(),
         "rate" => rate::run(),
         "adapt" => adapt::run(),
+        "validate" => validate::run(),
         other => {
-            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, `sync`, `rate`, or `adapt`");
+            eprintln!("unknown subcommand `{other}`; expected probe, run, stress, coded, sync, rate, adapt, or validate");
             std::process::exit(2);
         }
     };

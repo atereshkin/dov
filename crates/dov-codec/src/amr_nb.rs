@@ -91,6 +91,35 @@ impl AmrNb {
     pub fn dtx(&self) -> bool {
         self.dtx
     }
+
+    /// Encode one frame to its 3GPP storage-format bytes (mode header + payload),
+    /// advancing the encoder. This is exactly one frame of a `.amr` file.
+    pub fn encode_frame(&mut self, input: &[i16; FRAME_LEN]) -> Vec<u8> {
+        let mut buf = [0u8; 64];
+        let n = unsafe {
+            ffi::Encoder_Interface_Encode(
+                self.enc,
+                self.mode as i32,
+                input.as_ptr(),
+                buf.as_mut_ptr(),
+                0,
+            )
+        };
+        buf[..n.max(0) as usize].to_vec()
+    }
+
+    /// Encode a whole signal to a `.amr` bytestream (magic header + frames),
+    /// suitable for decoding by any conformant AMR decoder.
+    pub fn encode_to_amr(&mut self, signal: &[i16]) -> Vec<u8> {
+        let mut out = Vec::from(&b"#!AMR\n"[..]);
+        let mut frame = [0i16; FRAME_LEN];
+        for chunk in signal.chunks(FRAME_LEN) {
+            frame[..chunk.len()].copy_from_slice(chunk);
+            frame[chunk.len()..].fill(0);
+            out.extend_from_slice(&self.encode_frame(&frame));
+        }
+        out
+    }
 }
 
 impl Codec for AmrNb {
