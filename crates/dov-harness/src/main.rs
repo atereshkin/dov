@@ -6,6 +6,7 @@
 //!
 //! Run: `cargo run -p dov-harness -- run`  (or `probe`)
 
+mod adapt;
 mod ber;
 mod bridge;
 mod coded;
@@ -27,8 +28,9 @@ fn main() {
         "coded" => coded::run(),
         "sync" => timing::run(),
         "rate" => rate::run(),
+        "adapt" => adapt::run(),
         other => {
-            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, `sync`, or `rate`");
+            eprintln!("unknown subcommand `{other}`; expected `probe`, `run`, `stress`, `coded`, `sync`, `rate`, or `adapt`");
             std::process::exit(2);
         }
     };

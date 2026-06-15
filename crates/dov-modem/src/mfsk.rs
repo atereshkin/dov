@@ -51,7 +51,9 @@ impl MfskConfig {
             symbol_len: FRAME_LEN,
             amplitude: 8000.0,
             edge_ramp: 40,
-            decision_guard: 0.1,
+            // ~24-sample (3 ms) edge trim, matching the vocoder's transition
+            // smear; window stays long enough to resolve the 120 Hz spacing.
+            decision_guard: 0.15,
         }
     }
 

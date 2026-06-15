@@ -12,12 +12,15 @@ use crate::ber::{self, CodecKind};
 use dov_modem::{Demodulator, MfskConfig, Modulator};
 
 fn mk(tones: Vec<f64>, symbol_len: usize) -> MfskConfig {
+    // Trim a fixed ~24-sample edge per side (the vocoder's transition smear is a
+    // roughly fixed duration), capped so short symbols keep a usable window.
+    let decision_guard = (24.0 / symbol_len as f64).min(0.2);
     MfskConfig {
         tones,
         symbol_len,
         amplitude: 8000.0,
         edge_ramp: 20,
-        decision_guard: 0.1,
+        decision_guard,
     }
 }
 
