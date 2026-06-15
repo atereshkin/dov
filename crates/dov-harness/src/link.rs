@@ -171,6 +171,39 @@ pub fn run_send(text: &str, device: Option<String>) -> io::Result<()> {
     Ok(())
 }
 
+/// Play and record at the same time on one machine, then recover the message —
+/// a single-command audio-path smoke test. The loop must be closed somewhere:
+/// `snd-aloop` devices (clean), an out→in cable, or speaker→mic (acoustic).
+pub fn run_loopback(play_dev: Option<String>, rec_dev: Option<String>) -> io::Result<()> {
+    let text = "dov loopback test 0123456789";
+    let tx = encode_message(text).map_err(io::Error::other)?;
+    let dur = tx.len() as f64 / 8000.0;
+    let rec_secs = dur + 3.0;
+
+    println!("Loopback: record {rec_secs:.0}s while playing {:?} ({dur:.1}s)", text);
+    println!("  (needs a loop: snd-aloop devices, an out→in cable, or speaker→mic)\n");
+
+    // Start the recorder first so it is capturing before playback begins.
+    let rec = std::thread::spawn(move || AlsaTool::new(rec_dev).record(rec_secs));
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    AlsaTool::new(play_dev).play(&tx)?;
+    let rx = rec
+        .join()
+        .map_err(|_| io::Error::other("record thread panicked"))??;
+
+    match decode_message(&rx) {
+        Some((msg, stats)) => println!(
+            "RX: {}  {:?}  (codewords failed {}/{})",
+            if msg == text { "OK" } else { "MISMATCH" },
+            msg,
+            stats.codewords_failed,
+            stats.codewords_total
+        ),
+        None => println!("RX: no message recovered (check the loop path and levels)"),
+    }
+    Ok(())
+}
+
 /// Record from a real audio device and recover a message.
 pub fn run_recv(seconds: f64, device: Option<String>) -> io::Result<()> {
     println!("Recording {seconds:.0}s ...");

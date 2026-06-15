@@ -104,6 +104,7 @@ cargo run --release -p dov-harness -- <subcommand>
 | `selftest` | Send a text message through the whole stack (FEC + modem) and the emulated codecs — validates the live-link path with no hardware |
 | `send`     | Transmit a message to a real audio device: `send "hello" [alsa-device]` |
 | `recv`     | Record from a device and recover a message: `recv [seconds] [alsa-device]` |
+| `loopback` | Play + record at once on one machine and recover — audio-path smoke test: `loopback [play-dev] [rec-dev]` |
 
 Reproduce everything (writes outputs under `artifacts/`):
 
@@ -134,6 +135,21 @@ cargo run --release -p dov-harness -- recv 20    cargo run --release -p dov-harn
 Start `recv` first (it records for the given seconds), then fire `send` on the
 other end. The receiver scans the whole capture for the preamble, so the timing
 doesn't have to be exact.
+
+To smoke-test the audio path on **one** machine, `loopback` plays and records at
+the same time — you just have to close the loop somewhere:
+
+```sh
+# acoustic (zero setup): plays out the speaker, records from the mic
+cargo run --release -p dov-harness -- loopback
+
+# clean software loop (no cable, no noise) via the ALSA loopback module:
+sudo modprobe snd-aloop
+cargo run --release -p dov-harness -- loopback plughw:Loopback,0,0 plughw:Loopback,1,0
+```
+
+A 3.5 mm out→in cable also works (use your default devices), but `snd-aloop` is
+cleaner and needs no hardware.
 
 ## Status & next
 

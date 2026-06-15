@@ -58,8 +58,12 @@ fn main() {
             let seconds = a.first().and_then(|s| s.parse().ok()).unwrap_or(12.0);
             link::run_recv(seconds, a.get(1).cloned())
         }
+        "loopback" => {
+            let a: Vec<String> = std::env::args().skip(2).collect();
+            link::run_loopback(a.first().cloned(), a.get(1).cloned())
+        }
         other => {
-            eprintln!("unknown subcommand `{other}`; expected one of: probe run stress coded sync rate adapt validate bt selftest send recv");
+            eprintln!("unknown subcommand `{other}`; expected one of: probe run stress coded sync rate adapt validate bt selftest send recv loopback");
             std::process::exit(2);
         }
     };
