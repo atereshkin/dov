@@ -20,5 +20,6 @@ run sync
 run rate
 run adapt
 run validate
+run bt
 
 echo "All outputs collected under artifacts/"

@@ -7,13 +7,19 @@
 //! the genuine RPE-LTP / ACELP distortion rather than an approximation.
 //!
 //! Everything is narrowband: 8 kHz sample rate, 20 ms frames = 160 `i16`
-//! samples per frame.
+//! samples per frame. Beyond the cellular vocoders, [`Cvsd`] models the
+//! Bluetooth HFP voice codec, and [`Chain`] composes codecs in series to model
+//! tandem paths (e.g. a Bluetooth-bridged GSM call).
 
 pub mod ffi;
 mod amr_nb;
+mod chain;
+mod cvsd;
 mod gsm_fr;
 
 pub use amr_nb::{AmrMode, AmrNb};
+pub use chain::Chain;
+pub use cvsd::Cvsd;
 pub use gsm_fr::GsmFr;
 
 /// Sample rate of every narrowband GSM/AMR codec, in Hz.

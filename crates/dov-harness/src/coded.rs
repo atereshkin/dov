@@ -5,7 +5,7 @@
 use crate::ber::{self, CodecKind};
 use crate::bridge;
 use crate::scenarios;
-use dov_channel::{Channel, ChannelConfig};
+use dov_channel::Channel;
 use dov_frame::FrameCodec;
 use dov_modem::{symbol_bit_errors, Decision, Demodulator, MfskConfig, Modulator, Receiver};
 use std::fmt::Write as _;
@@ -21,18 +21,14 @@ pub const BLOCKS: usize = 6;
 /// A symbol whose winning-tone margin is below this (dB) is flagged erased.
 pub const ERASURE_MARGIN_DB: f64 = 6.0;
 
-/// Run one payload through FEC + modem + (optional impairments) + real receiver,
-/// returning (pre-FEC BER on the coded symbols, post-FEC payload BER).
-///
-/// `build = None` runs the clean codec; `Some(_)` wraps it in an impairment
-/// channel. `payload` must be block-aligned for `fc`.
-pub fn measure_coded(
+/// Run one payload through FEC + modem + receiver, where `make_rx` defines the
+/// channel (clean codec, impaired channel, or a tandem). Returns (pre-FEC BER on
+/// the coded symbols, post-FEC payload BER). `payload` must be block-aligned.
+pub fn measure_coded<F: Fn(&[i16]) -> Vec<i16>>(
     cfg: &MfskConfig,
     fc: &FrameCodec,
     payload: &[u8],
-    kind: CodecKind,
-    dtx: bool,
-    build: Option<&dyn Fn() -> ChannelConfig>,
+    make_rx: F,
 ) -> (f64, f64) {
     let bps = cfg.bits_per_symbol();
     let m = cfg.symbol_len;
@@ -45,10 +41,7 @@ pub fn measure_coded(
     let tx_syms: Vec<u8> = preamble.iter().copied().chain(data_syms.iter().copied()).collect();
     let tx_pcm = modu.modulate(&tx_syms);
 
-    let rx = match build {
-        Some(b) => Channel::new(kind.make(dtx), b(), ber::SEED).run(&tx_pcm),
-        None => kind.make(dtx).process(&tx_pcm),
-    };
+    let rx = make_rx(&tx_pcm);
 
     let receiver = Receiver::new(&demod);
     let data = match receiver.acquire(&rx, &preamble, ber::MAX_DELAY) {
@@ -118,7 +111,9 @@ pub fn run() -> std::io::Result<()> {
     for sc in scenarios::all() {
         print!("{:>30} |", sc.name);
         for kind in &codecs {
-            let (pre, post) = measure_coded(&cfg, &fc, &payload, *kind, sc.dtx, Some(&sc.build));
+            let (pre, post) = measure_coded(&cfg, &fc, &payload, |tx| {
+                Channel::new(kind.make(sc.dtx), (sc.build)(), ber::SEED).run(tx)
+            });
             print!(" {:>7.1e}→{:<7.1e}", pre, post);
             let _ = writeln!(csv, "{},{},{:.6e},{:.6e}", sc.name, kind.label(), pre, post);
         }

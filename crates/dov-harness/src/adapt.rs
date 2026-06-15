@@ -13,7 +13,7 @@ use dov_frame::FrameCodec;
 use dov_modem::MfskConfig;
 
 /// FEC code rate (RS(64,40)); net throughput = raw × this when error-free.
-const FEC_RATE: f64 = coded::RS_K as f64 / coded::RS_N as f64;
+pub const FEC_RATE: f64 = coded::RS_K as f64 / coded::RS_N as f64;
 
 fn mk(tones: Vec<f64>, symbol_len: usize) -> MfskConfig {
     // Trim a fixed ~24-sample (3 ms) edge per side — the vocoder's transition
@@ -24,7 +24,7 @@ fn mk(tones: Vec<f64>, symbol_len: usize) -> MfskConfig {
 }
 
 /// Candidate profiles, fastest first.
-fn profiles() -> Vec<(&'static str, MfskConfig)> {
+pub fn profiles() -> Vec<(&'static str, MfskConfig)> {
     let f4: Vec<f64> = vec![700.0, 1100.0, 1500.0, 1900.0];
     let f8: Vec<f64> = (0..8).map(|i| 700.0 + 200.0 * i as f64).collect();
     let f16: Vec<f64> = (0..16).map(|i| 600.0 + 120.0 * i as f64).collect();
@@ -36,6 +36,22 @@ fn profiles() -> Vec<(&'static str, MfskConfig)> {
         ("8-FSK / 20ms", mk(f8.clone(), 160)),   // 150 bps
         ("4-FSK / 20ms", mk(f4.clone(), 160)),   // 100 bps
     ]
+}
+
+/// Fastest profile (by raw rate) that decodes error-free through `make_rx`.
+/// Returns (label, raw bps); `None` if none qualify.
+pub fn fastest_error_free<F: Fn(&[i16]) -> Vec<i16>>(
+    fc: &FrameCodec,
+    payload: &[u8],
+    make_rx: F,
+) -> Option<(&'static str, f64)> {
+    for (label, cfg) in profiles() {
+        let (_, post) = coded::measure_coded(&cfg, fc, payload, &make_rx);
+        if post == 0.0 {
+            return Some((label, cfg.raw_bitrate()));
+        }
+    }
+    None
 }
 
 pub fn run() -> std::io::Result<()> {
@@ -50,7 +66,7 @@ pub fn run() -> std::io::Result<()> {
         .map(|(_, cfg)| {
             codecs
                 .iter()
-                .map(|&k| coded::measure_coded(cfg, &fc, &payload, k, false, None).1)
+                .map(|&k| coded::measure_coded(cfg, &fc, &payload, |tx| k.make(false).process(tx)).1)
                 .collect()
         })
         .collect();

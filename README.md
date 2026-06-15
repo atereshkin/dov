@@ -96,6 +96,7 @@ cargo run --release -p dov-harness -- <subcommand>
 | `rate`     | Throughput-vs-survival frontier across modem configs |
 | `adapt`    | Link rate adaptation: fastest error-free profile per codec |
 | `validate` | Cross-check our FFI codecs against ffmpeg (GSM bit-exact; AMR 0.99+ corr) |
+| `bt`       | Bluetooth-HFP tandem (CVSD around the codec): the throughput cost of bridging a call over Bluetooth |
 
 Reproduce everything (writes outputs under `artifacts/`):
 

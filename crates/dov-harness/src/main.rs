@@ -9,6 +9,7 @@
 mod adapt;
 mod ber;
 mod bridge;
+mod bt;
 mod coded;
 mod prbs;
 mod probe;
@@ -31,8 +32,9 @@ fn main() {
         "rate" => rate::run(),
         "adapt" => adapt::run(),
         "validate" => validate::run(),
+        "bt" => bt::run(),
         other => {
-            eprintln!("unknown subcommand `{other}`; expected probe, run, stress, coded, sync, rate, adapt, or validate");
+            eprintln!("unknown subcommand `{other}`; expected probe, run, stress, coded, sync, rate, adapt, validate, or bt");
             std::process::exit(2);
         }
     };
