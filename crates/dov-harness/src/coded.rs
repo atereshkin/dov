@@ -8,7 +8,7 @@ use crate::bridge;
 use crate::scenarios;
 use dov_channel::Channel;
 use dov_frame::FrameCodec;
-use dov_modem::{symbol_bit_errors, Demodulator, MfskConfig, Modulator};
+use dov_modem::{symbol_bit_errors, Decision, Demodulator, MfskConfig, Modulator, Receiver};
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -42,13 +42,14 @@ pub fn run() -> std::io::Result<()> {
     let payload: Vec<u8> = payload.chunks(8).map(|c| c.iter().fold(0u8, |v, &x| (v << 1) | x)).collect();
     let coded = fc.encode(&payload);
     let data_syms = bridge::coded_to_symbols(&coded, bps);
-    let guard: Vec<u8> = (0..ber::GUARD_SYMBOLS).map(|i| (i % cfg.tones.len()) as u8).collect();
-    let tx_syms: Vec<u8> = guard.iter().copied().chain(data_syms.iter().copied()).collect();
+    // Real receiver: a known preamble for acquisition, then clock tracking.
+    let preamble = ber::preamble(bps, ber::PREAMBLE_LEN);
+    let tx_syms: Vec<u8> = preamble.iter().copied().chain(data_syms.iter().copied()).collect();
     let tx_pcm = modulator.modulate(&tx_syms);
 
     let goodput = fc.rate() * cfg.raw_bitrate();
     println!(
-        "M4 coded sweep — RS({RS_N},{RS_K}) depth {DEPTH}, rate {:.3}, erasure flag < {ERASURE_MARGIN_DB} dB",
+        "M4+M2 coded sweep — FEC + preamble acquisition/tracking — RS({RS_N},{RS_K}) depth {DEPTH}, rate {:.3}, erasure flag < {ERASURE_MARGIN_DB} dB",
         fc.rate()
     );
     println!(
@@ -80,8 +81,12 @@ pub fn run() -> std::io::Result<()> {
             let mut channel = Channel::new(codec, (sc.build)(), ber::SEED);
             let rx = channel.run(&tx_pcm);
 
-            let delay = ber::align(&rx, &demod, &tx_syms);
-            let data = ber::decisions(&rx, &demod, delay + ber::GUARD_SYMBOLS * m, data_syms.len());
+            let receiver = Receiver::new(&demod);
+            let data = match receiver.acquire(&rx, &preamble, ber::MAX_DELAY) {
+                Some(off) => receiver.demodulate_tracked(&rx, off + preamble.len() * m, data_syms.len()),
+                // Lost the preamble: hand the FEC all-erased symbols (worst case).
+                None => vec![Decision { symbol: 0, margin_db: 0.0 }; data_syms.len()],
+            };
 
             // pre-FEC bit error rate on the coded symbol stream
             let pre_bit_err: u32 = data

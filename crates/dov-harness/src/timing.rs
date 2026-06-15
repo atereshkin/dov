@@ -11,7 +11,7 @@ use crate::scenarios;
 use dov_channel::Channel;
 use dov_modem::{symbol_bit_errors, Demodulator, MfskConfig, Modulator, Receiver};
 
-const PREAMBLE_LEN: usize = 24;
+const PREAMBLE_LEN: usize = ber::PREAMBLE_LEN;
 const DATA_SYMBOLS: usize = 8000;
 
 pub fn run() -> std::io::Result<()> {

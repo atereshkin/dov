@@ -15,6 +15,8 @@ pub const MAX_DELAY: usize = 480;
 pub const ALIGN_SYMBOLS: usize = 256;
 /// Reproducible payload seed.
 pub const SEED: u64 = 0xD0_F0_2026;
+/// Preamble length (symbols) for receiver acquisition.
+pub const PREAMBLE_LEN: usize = 24;
 
 /// Which vocoder to instantiate.
 #[derive(Clone, Copy)]
@@ -120,22 +122,6 @@ pub fn align(rx: &[i16], demod: &Demodulator, tx_syms: &[u8]) -> usize {
     delay
 }
 
-/// Demodulate `count` symbols starting at sample `start`. Symbols that fall off
-/// the end (e.g. after clock-drift shortening) come back as zero-margin so the
-/// caller's erasure-flagging treats them as lost.
-pub fn decisions(rx: &[i16], demod: &Demodulator, start: usize, count: usize) -> Vec<dov_modem::Decision> {
-    let m = demod.config().symbol_len;
-    (0..count)
-        .map(|k| {
-            let s = start + k * m;
-            if s + m <= rx.len() {
-                demod.decide(&rx[s..s + m])
-            } else {
-                dov_modem::Decision { symbol: 0, margin_db: 0.0 }
-            }
-        })
-        .collect()
-}
 
 /// Demodulate `rx`, aligned to the known `tx_syms`, and tally errors.
 pub fn score(name: &str, rx: &[i16], demod: &Demodulator, tx_syms: &[u8], alphabet: usize) -> Outcome {
