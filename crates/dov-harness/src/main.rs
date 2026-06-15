@@ -11,6 +11,7 @@ mod ber;
 mod bridge;
 mod bt;
 mod coded;
+mod link;
 mod prbs;
 mod probe;
 mod rate;
@@ -33,8 +34,32 @@ fn main() {
         "adapt" => adapt::run(),
         "validate" => validate::run(),
         "bt" => bt::run(),
+        "selftest" => {
+            let msg = std::env::args().skip(2).collect::<Vec<_>>().join(" ");
+            let msg = if msg.is_empty() {
+                "the quick brown fox jumps over the lazy dog 0123456789".to_string()
+            } else {
+                msg
+            };
+            link::run_selftest(&msg)
+        }
+        "send" => {
+            let a: Vec<String> = std::env::args().skip(2).collect();
+            match a.first() {
+                Some(msg) if !msg.is_empty() => link::run_send(msg, a.get(1).cloned()),
+                _ => {
+                    eprintln!("usage: send \"<message>\" [alsa-device]");
+                    std::process::exit(2);
+                }
+            }
+        }
+        "recv" => {
+            let a: Vec<String> = std::env::args().skip(2).collect();
+            let seconds = a.first().and_then(|s| s.parse().ok()).unwrap_or(12.0);
+            link::run_recv(seconds, a.get(1).cloned())
+        }
         other => {
-            eprintln!("unknown subcommand `{other}`; expected probe, run, stress, coded, sync, rate, adapt, validate, or bt");
+            eprintln!("unknown subcommand `{other}`; expected one of: probe run stress coded sync rate adapt validate bt selftest send recv");
             std::process::exit(2);
         }
     };

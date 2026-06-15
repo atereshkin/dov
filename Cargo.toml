@@ -5,6 +5,7 @@ members = [
     "crates/dov-modem",
     "crates/dov-channel",
     "crates/dov-frame",
+    "crates/dov-io",
     "crates/dov-harness",
 ]
 
@@ -19,6 +20,7 @@ dov-codec = { path = "crates/dov-codec" }
 dov-modem = { path = "crates/dov-modem" }
 dov-channel = { path = "crates/dov-channel" }
 dov-frame = { path = "crates/dov-frame" }
+dov-io = { path = "crates/dov-io" }
 
 [profile.release]
 opt-level = 3

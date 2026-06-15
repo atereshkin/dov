@@ -21,5 +21,6 @@ run rate
 run adapt
 run validate
 run bt
+run selftest
 
 echo "All outputs collected under artifacts/"

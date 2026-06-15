@@ -24,8 +24,13 @@ dependencies = [
  "dov-channel",
  "dov-codec",
  "dov-frame",
+ "dov-io",
  "dov-modem",
 ]
+
+[[package]]
+name = "dov-io"
+version = "0.1.0"
 
 [[package]]
 name = "dov-modem"

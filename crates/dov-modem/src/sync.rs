@@ -47,6 +47,22 @@ impl<'a> Receiver<'a> {
         Self { demod, timing }
     }
 
+    /// How many preamble symbols decode correctly starting at sample `d`.
+    fn preamble_matches(&self, rx: &[i16], preamble: &[u8], d: usize) -> usize {
+        let m = self.demod.config().symbol_len;
+        let mut matches = 0usize;
+        for (k, &want) in preamble.iter().enumerate() {
+            let s = d + k * m;
+            if s + m > rx.len() {
+                break;
+            }
+            if self.demod.decide(&rx[s..s + m]).symbol == want {
+                matches += 1;
+            }
+        }
+        matches
+    }
+
     /// Find the sample offset of the first preamble symbol by best match over
     /// `0..=max_delay`. Returns `None` if fewer than half the preamble symbols
     /// match (no confident acquisition).
@@ -58,19 +74,43 @@ impl<'a> Receiver<'a> {
             if d + preamble.len() * m > rx.len() {
                 break;
             }
-            let mut matches = 0usize;
-            for (k, &want) in preamble.iter().enumerate() {
-                let s = d + k * m;
-                if self.demod.decide(&rx[s..s + m]).symbol == want {
-                    matches += 1;
-                }
-            }
+            let matches = self.preamble_matches(rx, preamble, d);
             if matches > best_matches {
                 best_matches = matches;
                 best_offset = d;
             }
         }
         (best_matches * 2 >= preamble.len()).then_some(best_offset)
+    }
+
+    /// Acquire by scanning the whole buffer — a coarse step then a fine refine —
+    /// for a live capture where the signal may start anywhere. `coarse` is the
+    /// coarse step in samples (e.g. a quarter symbol).
+    pub fn acquire_scan(&self, rx: &[i16], preamble: &[u8], coarse: usize) -> Option<usize> {
+        let m = self.demod.config().symbol_len;
+        let max = rx.len().saturating_sub(preamble.len() * m);
+        let coarse = coarse.max(1);
+
+        let (mut best_off, mut best) = (0usize, 0usize);
+        let mut d = 0;
+        while d <= max {
+            let matches = self.preamble_matches(rx, preamble, d);
+            if matches > best {
+                best = matches;
+                best_off = d;
+            }
+            d += coarse;
+        }
+        let lo = best_off.saturating_sub(coarse);
+        let hi = (best_off + coarse).min(max);
+        for d in lo..=hi {
+            let matches = self.preamble_matches(rx, preamble, d);
+            if matches > best {
+                best = matches;
+                best_off = d;
+            }
+        }
+        (best * 2 >= preamble.len()).then_some(best_off)
     }
 
     /// Demodulate `n` symbols beginning at sample `start`, tracking the symbol

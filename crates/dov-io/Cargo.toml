@@ -1,0 +1,8 @@
+[package]
+name = "dov-io"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Live audio I/O backends (play/record 8 kHz PCM) for the DoV modem"
+
+[dependencies]

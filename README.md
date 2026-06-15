@@ -60,7 +60,11 @@ crates/
   dov-channel  Composable real-network impairments: VAD/DTX, AGC, Gilbert-Elliott
                frame erasure → PLC, AWGN, clock drift.
   dov-frame    FEC: Reed-Solomon errors-and-erasures over GF(256) + interleaving.
-  dov-harness  The emulation CLI (subcommands below) producing tables/CSV/WAVs.
+  dov-io       Live PCM audio I/O behind a trait; aplay/arecord backend (a real
+               soundcard, a Bluetooth-SCO device, or a USB dongle are just
+               different device strings).
+  dov-harness  The emulation CLI (subcommands below) producing tables/CSV/WAVs,
+               and the live-link `send`/`recv`/`selftest` (link.rs).
 ```
 
 Dependencies flow one way (`harness → {codec, modem, channel, frame}`); all
@@ -97,6 +101,9 @@ cargo run --release -p dov-harness -- <subcommand>
 | `adapt`    | Link rate adaptation: fastest error-free profile per codec |
 | `validate` | Cross-check our FFI codecs against ffmpeg (GSM bit-exact; AMR 0.99+ corr) |
 | `bt`       | Bluetooth-HFP tandem (CVSD around the codec): the throughput cost of bridging a call over Bluetooth |
+| `selftest` | Send a text message through the whole stack (FEC + modem) and the emulated codecs — validates the live-link path with no hardware |
+| `send`     | Transmit a message to a real audio device: `send "hello" [alsa-device]` |
+| `recv`     | Record from a device and recover a message: `recv [seconds] [alsa-device]` |
 
 Reproduce everything (writes outputs under `artifacts/`):
 
@@ -106,6 +113,27 @@ Reproduce everything (writes outputs under `artifacts/`):
 
 The `stress`, `coded` subcommands also emit CSVs under `artifacts/` for plotting
 with external tools (gnuplot/python).
+
+## Sending a message over a real call
+
+The live-link tools turn a text message into a ~16 s waveform (robust 4-FSK +
+rate-½ FEC, so it survives any of the codecs) and recover it from captured audio:
+
+```sh
+# no hardware — validate the whole stack through the emulated codecs:
+cargo run --release -p dov-harness -- selftest "hello over GSM"
+
+# over a real device (a soundcard for a loopback test, a Bluetooth-SCO device
+# for a bridged phone call, or the USB dongle's audio endpoint):
+#   RX machine:                                  TX machine:
+cargo run --release -p dov-harness -- recv 20    cargo run --release -p dov-harness -- send "hello over GSM"
+# add an ALSA device as a second arg to target Bluetooth/the dongle, e.g.:
+#   ... -- send "hi" bluealsa            ... -- recv 20 plughw:CARD=Dongle
+```
+
+Start `recv` first (it records for the given seconds), then fire `send` on the
+other end. The receiver scans the whole capture for the preamble, so the timing
+doesn't have to be exact.
 
 ## Status & next
 

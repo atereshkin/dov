@@ -41,6 +41,19 @@ impl MfskConfig {
         }
     }
 
+    /// Most-robust alphabet: 4 widely-spaced tones (400 Hz apart), frame-aligned.
+    /// 2 bits/symbol → 100 bps raw, but survives every codec including AMR-4.75 —
+    /// the right default when the codec is unknown and reliability matters most.
+    pub fn fsk4() -> Self {
+        Self {
+            tones: vec![700.0, 1100.0, 1500.0, 1900.0],
+            symbol_len: FRAME_LEN,
+            amplitude: 8000.0,
+            edge_ramp: 40,
+            decision_guard: 0.15,
+        }
+    }
+
     /// Codec-agnostic higher-rate alphabet: 16 tones, 600–2400 Hz, 120 Hz
     /// spacing, still frame-aligned (20 ms) so it survives every codec's
     /// per-frame model. 4 bits/symbol → 200 bps raw, a +33% on [`Self::fsk8`]

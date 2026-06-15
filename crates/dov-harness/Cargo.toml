@@ -10,6 +10,7 @@ dov-codec = { workspace = true }
 dov-modem = { workspace = true }
 dov-channel = { workspace = true }
 dov-frame = { workspace = true }
+dov-io = { workspace = true }
 
 [[bin]]
 name = "dov-probe"
