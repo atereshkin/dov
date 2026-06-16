@@ -62,8 +62,25 @@ fn main() {
             let a: Vec<String> = std::env::args().skip(2).collect();
             link::run_loopback(a.first().cloned(), a.get(1).cloned())
         }
+        "encode" => {
+            let a: Vec<String> = std::env::args().skip(2).collect();
+            match (a.first(), a.get(1)) {
+                (Some(msg), Some(path)) if !msg.is_empty() => link::run_encode_wav(msg, path),
+                _ => {
+                    eprintln!("usage: encode \"<message>\" <out.wav>");
+                    std::process::exit(2);
+                }
+            }
+        }
+        "decode" => match std::env::args().nth(2) {
+            Some(path) => link::run_decode_wav(&path),
+            None => {
+                eprintln!("usage: decode <in.wav>");
+                std::process::exit(2);
+            }
+        },
         other => {
-            eprintln!("unknown subcommand `{other}`; expected one of: probe run stress coded sync rate adapt validate bt selftest send recv loopback");
+            eprintln!("unknown subcommand `{other}`; expected one of: probe run stress coded sync rate adapt validate bt selftest send recv loopback encode decode");
             std::process::exit(2);
         }
     };

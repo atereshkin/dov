@@ -204,6 +204,38 @@ pub fn run_loopback(play_dev: Option<String>, rec_dev: Option<String>) -> io::Re
     Ok(())
 }
 
+/// Encode a message to a WAV file — for playing into a live call with `pw-play`.
+pub fn run_encode_wav(text: &str, path: &str) -> io::Result<()> {
+    let tx = encode_message(text).map_err(io::Error::other)?;
+    crate::wav::write_mono_i16(path, &tx, 8000)?;
+    println!(
+        "encoded {:?} ({} bytes) → {} ({} samples, {:.1}s)",
+        text,
+        text.len(),
+        path,
+        tx.len(),
+        tx.len() as f64 / 8000.0
+    );
+    Ok(())
+}
+
+/// Decode a message from a WAV file — e.g. one captured from a live call.
+pub fn run_decode_wav(path: &str) -> io::Result<()> {
+    let (pcm, rate) = crate::wav::read_mono_i16(path)?;
+    if rate != 8000 {
+        eprintln!("warning: {path} is {rate} Hz, expected 8000 — capture with --rate 8000");
+    }
+    println!("decoding {} ({} samples, {:.1}s)...", path, pcm.len(), pcm.len() as f64 / rate.max(1) as f64);
+    match decode_message(&pcm) {
+        Some((msg, stats)) => println!(
+            "RX: {:?}  (codewords failed {}/{})",
+            msg, stats.codewords_failed, stats.codewords_total
+        ),
+        None => println!("RX: no message recovered (no sync)"),
+    }
+    Ok(())
+}
+
 /// Record from a real audio device and recover a message.
 pub fn run_recv(seconds: f64, device: Option<String>) -> io::Result<()> {
     println!("Recording {seconds:.0}s ...");
