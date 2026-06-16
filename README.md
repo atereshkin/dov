@@ -72,17 +72,25 @@ Dependencies flow one way (`harness → {codec, modem, channel, frame}`); all
 
 ## Build
 
-Requires a Rust toolchain and the runtime codec libraries (Debian package names):
+Requires a Rust toolchain plus the codec libraries and an audio CLI:
 
 ```
-libgsm1  libopencore-amrnb0        # codecs (FFI; no -dev headers needed)
-ffmpeg                             # only for the `validate` subcommand
+# Debian/Linux:
+apt install libgsm1 libopencore-amrnb0   # codecs (FFI; no -dev headers needed)
+#            aplay/arecord (alsa-utils)  # live audio I/O
+#            ffmpeg                       # only for the `validate` subcommand
+
+# macOS:
+brew install libgsm opencore-amr sox     # codecs + sox (play/rec) for live audio
 ```
 
 ```sh
 cargo build --release
 cargo test --workspace            # incl. ~10k RS fuzz trials, DTX/timing checks
 ```
+
+The DSP/modem/FEC is portable Rust; only `dov-codec` (codec linking) and
+`dov-io` (audio CLI) are platform-aware, and both Linux and macOS are supported.
 
 ## Run
 

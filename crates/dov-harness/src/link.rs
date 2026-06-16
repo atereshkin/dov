@@ -14,7 +14,7 @@
 use crate::{ber, bridge, coded};
 use dov_codec::{AmrMode, AmrNb, Chain, Codec, Cvsd, GsmFr};
 use dov_frame::{DecodeStats, FrameCodec};
-use dov_io::{AlsaTool, AudioIn, AudioOut};
+use dov_io::{AudioDevice, AudioIn, AudioOut};
 use dov_modem::{Demodulator, MfskConfig, Modulator, Receiver};
 use std::io;
 
@@ -166,7 +166,7 @@ pub fn run_send(text: &str, device: Option<String>) -> io::Result<()> {
         tx.len() as f64 / 8000.0,
         device.as_deref().map(|d| format!(" to {d}")).unwrap_or_default()
     );
-    AlsaTool::new(device).play(&tx)?;
+    AudioDevice::new(device).play(&tx)?;
     println!("done.");
     Ok(())
 }
@@ -184,9 +184,9 @@ pub fn run_loopback(play_dev: Option<String>, rec_dev: Option<String>) -> io::Re
     println!("  (needs a loop: snd-aloop devices, an out→in cable, or speaker→mic)\n");
 
     // Start the recorder first so it is capturing before playback begins.
-    let rec = std::thread::spawn(move || AlsaTool::new(rec_dev).record(rec_secs));
+    let rec = std::thread::spawn(move || AudioDevice::new(rec_dev).record(rec_secs));
     std::thread::sleep(std::time::Duration::from_millis(500));
-    AlsaTool::new(play_dev).play(&tx)?;
+    AudioDevice::new(play_dev).play(&tx)?;
     let rx = rec
         .join()
         .map_err(|_| io::Error::other("record thread panicked"))??;
@@ -207,7 +207,7 @@ pub fn run_loopback(play_dev: Option<String>, rec_dev: Option<String>) -> io::Re
 /// Record from a real audio device and recover a message.
 pub fn run_recv(seconds: f64, device: Option<String>) -> io::Result<()> {
     println!("Recording {seconds:.0}s ...");
-    let rx = AlsaTool::new(device).record(seconds)?;
+    let rx = AudioDevice::new(device).record(seconds)?;
     match decode_message(&rx) {
         Some((msg, stats)) => println!(
             "RX: {:?}  (codewords failed {}/{})",

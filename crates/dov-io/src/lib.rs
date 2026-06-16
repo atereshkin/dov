@@ -2,11 +2,11 @@
 //! transport (a real soundcard, a Bluetooth-SCO device, or a USB GSM dongle's
 //! audio endpoint) is just a swappable backend.
 //!
-//! The first backend shells out to ALSA's `aplay`/`arecord`, which route through
-//! PipeWire/PulseAudio via the ALSA bridge on a normal desktop. Crucially, a
-//! Bluetooth headset's SCO link and a USB modem's audio interface both show up
-//! as ordinary ALSA/PCM devices, so selecting between them is just a different
-//! `device` string — exactly the "two backends behind one interface" we want.
+//! It shells out to the platform's command-line audio tools — `aplay`/`arecord`
+//! (ALSA) on Linux, `play`/`rec` (sox, `brew install sox`) on macOS — which
+//! route through the OS audio stack. A Bluetooth headset's SCO link and a USB
+//! modem's audio interface both show up as ordinary devices, so selecting
+//! between them is just a different `device` string.
 #![forbid(unsafe_code)]
 
 use std::io::{self, Write};
@@ -25,55 +25,80 @@ pub trait AudioIn {
 /// Sample rate every narrowband codec/modem uses.
 pub const SAMPLE_RATE: u32 = 8_000;
 
-/// ALSA `aplay`/`arecord` backend. `device` is the ALSA device string (e.g.
-/// `default`, a `bluez`/`bluealsa` SCO device, or `plughw:CARD=<dongle>`);
+const MACOS: bool = cfg!(target_os = "macos");
+
+/// Command-line audio backend. `device` selects the OS device:
+///   * Linux: an ALSA device string (`default`, `bluealsa`, `plughw:CARD=...`)
+///   * macOS: a sox `AUDIODEV` name
 /// `None` uses the default device.
-pub struct AlsaTool {
+pub struct AudioDevice {
     pub device: Option<String>,
     pub rate: u32,
 }
 
-impl AlsaTool {
+impl AudioDevice {
     pub fn new(device: Option<String>) -> Self {
         Self { device, rate: SAMPLE_RATE }
     }
 }
 
-impl AudioOut for AlsaTool {
+impl AudioOut for AudioDevice {
     fn play(&mut self, pcm: &[i16]) -> io::Result<()> {
         let rate = self.rate.to_string();
-        let mut cmd = Command::new("aplay");
-        cmd.args(["-q", "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", &rate]);
-        if let Some(d) = &self.device {
-            cmd.args(["-D", d]);
-        }
+        let mut cmd = if MACOS {
+            let mut c = Command::new("play");
+            c.args(["-q", "-t", "raw", "-r", &rate, "-e", "signed", "-b", "16", "-c", "1", "-"]);
+            if let Some(d) = &self.device {
+                c.env("AUDIODEV", d);
+            }
+            c
+        } else {
+            let mut c = Command::new("aplay");
+            c.args(["-q", "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", &rate]);
+            if let Some(d) = &self.device {
+                c.args(["-D", d]);
+            }
+            c
+        };
         cmd.stdin(Stdio::piped());
         let mut child = cmd.spawn()?;
         let mut bytes = Vec::with_capacity(pcm.len() * 2);
         for &s in pcm {
             bytes.extend_from_slice(&s.to_le_bytes());
         }
-        // aplay drains stdin at playback rate, so this blocks ~ real time.
         child.stdin.take().unwrap().write_all(&bytes)?;
         if !child.wait()?.success() {
-            return Err(io::Error::other("aplay failed"));
+            return Err(io::Error::other("audio playback command failed"));
         }
         Ok(())
     }
 }
 
-impl AudioIn for AlsaTool {
+impl AudioIn for AudioDevice {
     fn record(&mut self, seconds: f64) -> io::Result<Vec<i16>> {
         let rate = self.rate.to_string();
         let dur = seconds.ceil().max(1.0).to_string();
-        let mut cmd = Command::new("arecord");
-        cmd.args(["-q", "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", &rate, "-d", &dur]);
-        if let Some(d) = &self.device {
-            cmd.args(["-D", d]);
-        }
+        let mut cmd = if MACOS {
+            let mut c = Command::new("rec");
+            c.args([
+                "-q", "-t", "raw", "-r", &rate, "-e", "signed", "-b", "16", "-c", "1", "-",
+                "trim", "0", &dur,
+            ]);
+            if let Some(d) = &self.device {
+                c.env("AUDIODEV", d);
+            }
+            c
+        } else {
+            let mut c = Command::new("arecord");
+            c.args(["-q", "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", &rate, "-d", &dur]);
+            if let Some(d) = &self.device {
+                c.args(["-D", d]);
+            }
+            c
+        };
         let out = cmd.stdout(Stdio::piped()).output()?;
         if !out.status.success() {
-            return Err(io::Error::other("arecord failed"));
+            return Err(io::Error::other("audio record command failed"));
         }
         Ok(out
             .stdout
