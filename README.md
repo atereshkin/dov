@@ -113,6 +113,13 @@ cargo run --release -p dov-harness -- <subcommand>
 | `send`     | Transmit a message to a real audio device: `send "hello" [alsa-device]` |
 | `recv`     | Record from a device and recover a message: `recv [seconds] [alsa-device]` |
 | `loopback` | Play + record at once on one machine and recover — audio-path smoke test: `loopback [play-dev] [rec-dev]` |
+| `encode`   | Write a message's waveform to a WAV: `encode "<msg>" out.wav` (for `pw-play` into a call) |
+| `decode`   | Recover a message from a captured WAV: `decode in.wav` |
+
+A device argument prefixed `pw:` targets a specific PipeWire node via `pw-cat`
+(e.g. `send "hi" pw:bluez_output.<MAC>.1` plays straight into a Bluetooth call's
+uplink). See [`docs/BLUETOOTH.md`](docs/BLUETOOTH.md) for bridging a real GSM call
+over Bluetooth.
 
 Reproduce everything (writes outputs under `artifacts/`):
 
